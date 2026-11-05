@@ -1,0 +1,12 @@
+# Python-generated files and local environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Generated alert reports
+/alerts.json
+/reports/
+
+# macOS metadata
+.DS_Store
