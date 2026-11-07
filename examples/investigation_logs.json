@@ -1,0 +1,56 @@
+[
+    {
+        "timestamp": "2026-11-04T14:00:00+00:00",
+        "username": "alex",
+        "source_ip": "192.0.2.10",
+        "success": false
+    },
+    {
+        "timestamp": "2026-11-04T14:00:10+00:00",
+        "username": "jordan",
+        "source_ip": "192.0.2.10",
+        "success": false
+    },
+    {
+        "timestamp": "2026-11-04T14:00:20+00:00",
+        "username": "alex",
+        "source_ip": "192.0.2.10",
+        "success": false
+    },
+    {
+        "timestamp": "2026-11-04T14:00:25+00:00",
+        "username": "alex",
+        "source_ip": "192.0.2.30",
+        "success": true
+    },
+    {
+        "timestamp": "2026-11-04T14:00:30+00:00",
+        "username": "jordan",
+        "source_ip": "192.0.2.10",
+        "success": false
+    },
+    {
+        "timestamp": "2026-11-04T14:00:35+00:00",
+        "username": "alex",
+        "source_ip": "192.0.2.10",
+        "success": true
+    },
+    {
+        "timestamp": "2026-11-04T14:01:40+00:00",
+        "username": "alex",
+        "source_ip": "192.0.2.10",
+        "success": false
+    },
+    {
+        "timestamp": "2026-11-04T14:01:50+00:00",
+        "username": "alex",
+        "source_ip": "192.0.2.10",
+        "success": false
+    },
+    {
+        "timestamp": "2026-11-04T14:02:00+00:00",
+        "username": "jordan",
+        "source_ip": "192.0.2.10",
+        "success": false
+    }
+]

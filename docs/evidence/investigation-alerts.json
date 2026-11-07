@@ -1,0 +1,30 @@
+[
+    {
+        "source_ip": "192.0.2.10",
+        "count": 3,
+        "window_seconds": 60,
+        "timestamp": "2026-11-04T14:00:20+00:00",
+        "incident_id": "INC-0001",
+        "incident_failure_count": 4,
+        "affected_usernames": [
+            "alex",
+            "jordan"
+        ],
+        "first_failure": "2026-11-04T14:00:00+00:00",
+        "last_failure": "2026-11-04T14:00:30+00:00",
+        "first_detected": "2026-11-04T14:00:20+00:00",
+        "peak_window_count": 4,
+        "successful_login_after_failures": true,
+        "successful_logins": [
+            {
+                "username": "alex",
+                "timestamp": "2026-11-04T14:00:35+00:00"
+            }
+        ],
+        "severity": "high",
+        "severity_reasons": [
+            "Rolling-window failure threshold reached.",
+            "A targeted account logged in successfully after detection."
+        ]
+    }
+]

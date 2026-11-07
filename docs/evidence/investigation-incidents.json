@@ -1,0 +1,52 @@
+[
+    {
+        "incident_id": "INC-0001",
+        "source_ip": "192.0.2.10",
+        "failure_count": 4,
+        "first_failure": "2026-11-04T14:00:00+00:00",
+        "last_failure": "2026-11-04T14:00:30+00:00",
+        "first_detected": "2026-11-04T14:00:20+00:00",
+        "window_seconds": 60,
+        "peak_window_count": 4,
+        "alert_count": 1,
+        "suppressed_alert_count": 1,
+        "successful_logins": [
+            {
+                "username": "alex",
+                "timestamp": "2026-11-04T14:00:35+00:00"
+            }
+        ],
+        "affected_usernames": [
+            "alex",
+            "jordan"
+        ],
+        "successful_login_after_failures": true,
+        "severity": "high",
+        "severity_reasons": [
+            "Rolling-window failure threshold reached.",
+            "A targeted account logged in successfully after detection."
+        ]
+    },
+    {
+        "incident_id": "INC-0002",
+        "source_ip": "192.0.2.10",
+        "failure_count": 3,
+        "first_failure": "2026-11-04T14:01:40+00:00",
+        "last_failure": "2026-11-04T14:02:00+00:00",
+        "first_detected": "2026-11-04T14:02:00+00:00",
+        "window_seconds": 60,
+        "peak_window_count": 3,
+        "alert_count": 0,
+        "suppressed_alert_count": 1,
+        "successful_logins": [],
+        "affected_usernames": [
+            "alex",
+            "jordan"
+        ],
+        "successful_login_after_failures": false,
+        "severity": "medium",
+        "severity_reasons": [
+            "Rolling-window failure threshold reached."
+        ]
+    }
+]

@@ -1,0 +1,14 @@
+Brute-Force Login Detector ready.
+Total failed attempts: 7
+Total alerts: 1
+Total incidents: 2
+Source IP: 192.0.2.10, Failures in window at latest failure: 3
+[ALERT] Possible brute-force activity: Source IP: 192.0.2.10, Count: 3, Window: 60 seconds, Time: 2026-11-04T14:00:20+00:00, Incident: INC-0001, Severity: high
+[INCIDENT] INC-0001, Source IP: 192.0.2.10, Severity: high, Failures: 4, Peak window count: 4, Alerts: 1, Suppressed: 1
+  Affected accounts: alex, jordan
+  First failure: 2026-11-04T14:00:00+00:00, Last failure: 2026-11-04T14:00:30+00:00, Successful login after failures: True
+[INCIDENT] INC-0002, Source IP: 192.0.2.10, Severity: medium, Failures: 3, Peak window count: 3, Alerts: 0, Suppressed: 1
+  Affected accounts: alex, jordan
+  First failure: 2026-11-04T14:01:40+00:00, Last failure: 2026-11-04T14:02:00+00:00, Successful login after failures: False
+Alerts written to: docs/evidence/investigation-alerts.json
+Incidents written to: docs/evidence/investigation-incidents.json

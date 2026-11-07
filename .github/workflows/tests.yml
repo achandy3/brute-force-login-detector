@@ -1,0 +1,43 @@
+name: Python tests
+
+"on":
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Show Python version
+        run: python --version
+
+      - name: Run full unittest suite
+        id: tests
+        run: python -B -m unittest discover --start-directory . --pattern "test_*.py" --verbose
+
+      - name: Explain test failure
+        if: ${{ failure() && steps.tests.outcome == 'failure' }}
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+        run: |
+          echo "::error title=Python ${PYTHON_VERSION} tests failed::The unittest suite failed. See the Run full unittest suite logs for failing tests, assertions, and tracebacks."

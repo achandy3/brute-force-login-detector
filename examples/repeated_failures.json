@@ -1,0 +1,32 @@
+[
+    {
+        "timestamp": "2026-11-04T14:00:00+00:00",
+        "username": "alex",
+        "source_ip": "192.0.2.10",
+        "success": false
+    },
+    {
+        "timestamp": "2026-11-04T14:00:10+00:00",
+        "username": "alex",
+        "source_ip": "192.0.2.10",
+        "success": false
+    },
+    {
+        "timestamp": "2026-11-04T14:00:20+00:00",
+        "username": "alex",
+        "source_ip": "192.0.2.10",
+        "success": false
+    },
+    {
+        "timestamp": "2026-11-04T14:00:30+00:00",
+        "username": "alex",
+        "source_ip": "192.0.2.10",
+        "success": false
+    },
+    {
+        "timestamp": "2026-11-04T14:00:40+00:00",
+        "username": "alex",
+        "source_ip": "192.0.2.10",
+        "success": false
+    }
+]

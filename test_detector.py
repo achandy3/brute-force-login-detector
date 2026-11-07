@@ -1,5 +1,5 @@
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
 import subprocess
@@ -283,6 +283,149 @@ class TestDetectionRules(unittest.TestCase):
                     detect_brute_force([make_record(source_ip=address)])
 
 
+class TestAlertSuppression(unittest.TestCase):
+    def failures_at(self, *seconds, source_ip="192.0.2.10"):
+        start = datetime(2026, 11, 4, 14, tzinfo=timezone.utc)
+        return [
+            make_record(
+                (start + timedelta(seconds=second)).isoformat(), source_ip=source_ip
+            )
+            for second in seconds
+        ]
+
+    def test_zero_preserves_original_alerts_and_result_shape(self):
+        records = self.failures_at(0, 10, 20, 30, 40)
+        original = detect_brute_force(records)
+        explicit_zero = detect_brute_force(records, suppression_seconds=0)
+        self.assertEqual(original, explicit_zero)
+        self.assertEqual([alert["count"] for alert in original["alerts"]], [3, 4, 5])
+        self.assertEqual(
+            set(original), {"total_failures", "failures_by_ip", "alerts"}
+        )
+        self.assertEqual(
+            set(original["alerts"][0]),
+            {"source_ip", "count", "window_seconds", "timestamp"},
+        )
+
+    def test_suppressed_failures_still_count_without_updating_alert_snapshot(self):
+        records = self.failures_at(0, 10, 20, 30, 40)
+        original_records = deepcopy(records)
+        original_result = detect_brute_force(records)
+        result = detect_brute_force(records, suppression_seconds=60)
+        self.assertEqual(result["alerts"], [original_result["alerts"][0]])
+        self.assertEqual(result["total_failures"], 5)
+        self.assertEqual(
+            result["failures_by_ip"], original_result["failures_by_ip"]
+        )
+        self.assertEqual(result["alerts"][0]["count"], 3)
+        self.assertEqual(records, original_records)
+
+    def test_cooldown_boundary(self):
+        for last_second, expected_alerts in ((79, 1), (80, 2), (81, 2)):
+            with self.subTest(last_second=last_second):
+                records = self.failures_at(0, 10, 20, last_second)
+                result = detect_brute_force(
+                    records, window_seconds=120, suppression_seconds=60
+                )
+                self.assertEqual(len(result["alerts"]), expected_alerts)
+
+    def test_suppressed_events_do_not_extend_cooldown(self):
+        records = self.failures_at(0, 10, 20, 30, 79, 80, 139, 140)
+        result = detect_brute_force(
+            records, window_seconds=300, suppression_seconds=60
+        )
+        self.assertEqual(
+            [alert["timestamp"].isoformat() for alert in result["alerts"]],
+            [
+                "2026-11-04T14:00:20+00:00",
+                "2026-11-04T14:01:20+00:00",
+                "2026-11-04T14:02:20+00:00",
+            ],
+        )
+        self.assertEqual([alert["count"] for alert in result["alerts"]], [3, 6, 8])
+
+    def test_cooldowns_are_independent_for_each_ip(self):
+        records = self.failures_at(0, 10, 20, 30)
+        records += self.failures_at(0, 10, 20, 30, source_ip="192.0.2.30")
+        result = detect_brute_force(records, suppression_seconds=60)
+        self.assertEqual(len(result["alerts"]), 2)
+        self.assertEqual(
+            {alert["source_ip"] for alert in result["alerts"]},
+            {"192.0.2.10", "192.0.2.30"},
+        )
+        self.assertEqual(result["total_failures"], 8)
+
+    def test_equivalent_ipv6_addresses_share_a_cooldown(self):
+        records = self.failures_at(0, 10, 20, source_ip="2001:db8::1")
+        records += self.failures_at(
+            30, source_ip="2001:0db8:0000:0000:0000:0000:0000:0001"
+        )
+        result = detect_brute_force(records, suppression_seconds=60)
+        self.assertEqual(len(result["alerts"]), 1)
+        self.assertEqual(result["alerts"][0]["source_ip"], "2001:db8::1")
+        self.assertEqual(len(result["failures_by_ip"]["2001:db8::1"]), 4)
+
+    def test_cooldown_uses_sorted_event_time_across_timezones(self):
+        records = [
+            make_record("2026-11-04T09:01:20-05:00"),
+            make_record("2026-11-04T14:00:20+00:00"),
+            make_record(),
+            make_record("2026-11-04T14:00:10+00:00"),
+            make_record("2026-11-04T15:01:19+01:00"),
+        ]
+        original = deepcopy(records)
+        result = detect_brute_force(
+            records, window_seconds=120, suppression_seconds=60
+        )
+        self.assertEqual(
+            [alert["timestamp"].isoformat() for alert in result["alerts"]],
+            ["2026-11-04T14:00:20+00:00", "2026-11-04T14:01:20+00:00"],
+        )
+        self.assertEqual(records, original)
+
+    def test_successful_login_does_not_reset_cooldown(self):
+        records = self.failures_at(0, 10, 20, 40, 80)
+        records.append(make_record("2026-11-04T14:00:30+00:00", success=True))
+        result = detect_brute_force(
+            records, window_seconds=120, suppression_seconds=60
+        )
+        self.assertEqual(result["total_failures"], 5)
+        self.assertEqual([alert["count"] for alert in result["alerts"]], [3, 5])
+
+    def test_new_burst_within_cooldown_is_suppressed_but_later_burst_alerts(self):
+        records = self.failures_at(0, 10, 20, 100, 110, 120, 300, 310, 320)
+        result = detect_brute_force(records, suppression_seconds=300)
+        self.assertEqual(
+            [alert["timestamp"].isoformat() for alert in result["alerts"]],
+            ["2026-11-04T14:00:20+00:00", "2026-11-04T14:05:20+00:00"],
+        )
+        self.assertEqual([alert["count"] for alert in result["alerts"]], [3, 3])
+        self.assertEqual(result["total_failures"], 9)
+        self.assertEqual(len(result["failures_by_ip"]["192.0.2.10"]), 3)
+
+    def test_suppression_does_not_create_alerts_below_threshold(self):
+        result = detect_brute_force(self.failures_at(0, 10), suppression_seconds=60)
+        self.assertEqual(result["alerts"], [])
+        self.assertEqual(detect_brute_force([], suppression_seconds=60)["alerts"], [])
+
+    def test_zero_allows_alerts_at_the_same_timestamp(self):
+        records = self.failures_at(0, 0, 0, 0)
+        self.assertEqual(
+            len(detect_brute_force(records, suppression_seconds=0)["alerts"]), 2
+        )
+        self.assertEqual(
+            len(detect_brute_force(records, suppression_seconds=1)["alerts"]), 1
+        )
+
+    def test_rejects_invalid_suppression_configuration(self):
+        for value in (-1, True, False, 1.5, "60", None):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(ValueError, "nonnegative integer"):
+                    detect_brute_force([], suppression_seconds=value)
+        with self.assertRaisesRegex(ValueError, "suppression_seconds is too large"):
+            detect_brute_force([], suppression_seconds=10**30)
+
+
 class TestCommandLine(unittest.TestCase):
     def setUp(self):
         self.temporary_directory = tempfile.TemporaryDirectory()
@@ -340,6 +483,49 @@ class TestCommandLine(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(output_path.read_text(encoding="utf-8")), [])
 
+    def test_suppression_option_filters_console_and_exported_alerts(self):
+        output_path = self.folder / "alerts.json"
+        result = self.run_detector(
+            self.input_path,
+            "--threshold", 2,
+            "--suppression-seconds", 60,
+            "--output", output_path,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        alerts = json.loads(output_path.read_text(encoding="utf-8"))
+        self.assertEqual(len(alerts), 1)
+        self.assertEqual(alerts[0]["count"], 2)
+        self.assertEqual(alerts[0]["timestamp"], "2026-11-04T14:00:20+00:00")
+        self.assertIn("Total failed attempts: 3", result.stdout)
+        self.assertIn("Total alerts: 1", result.stdout)
+        self.assertEqual(result.stdout.count("[ALERT]"), 1)
+
+    def test_explicit_zero_suppression_keeps_original_cli_behavior(self):
+        result = self.run_detector(
+            self.input_path, "--threshold", 2, "--suppression-seconds", 0
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Total alerts: 2", result.stdout)
+        self.assertEqual(result.stdout.count("[ALERT]"), 2)
+
+    def test_invalid_suppression_arguments_are_reported(self):
+        for value in ("-1", "1.5", "abc"):
+            with self.subTest(value=value):
+                result = self.run_detector(
+                    self.input_path, "--suppression-seconds", value
+                )
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("nonnegative integer", result.stderr)
+                self.assertNotIn("Traceback", result.stderr)
+
+    def test_suppression_duration_overflow_is_reported(self):
+        result = self.run_detector(
+            self.input_path, "--suppression-seconds", 10**30
+        )
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("suppression_seconds is too large", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
     def test_missing_input_is_reported(self):
         result = self.run_detector(self.folder / "missing.json")
         self.assertEqual(result.returncode, 1)
@@ -395,5 +581,5 @@ class TestCommandLine(unittest.TestCase):
     def test_help(self):
         result = self.run_detector("--help")
         self.assertEqual(result.returncode, 0)
-        for flag in ("--threshold", "--window", "--output"):
+        for flag in ("--threshold", "--window", "--suppression-seconds", "--output"):
             self.assertIn(flag, result.stdout)

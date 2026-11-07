@@ -1,0 +1,55 @@
+{
+    "purpose": "Reproducible output from fictional authentication records; not evidence of a real incident.",
+    "python_version": "3.15.2",
+    "command": [
+        "python3",
+        "-B",
+        "detector.py",
+        "examples/investigation_logs.json",
+        "--threshold",
+        "3",
+        "--window",
+        "60",
+        "--suppression-seconds",
+        "300",
+        "--investigate",
+        "--output",
+        "docs/evidence/investigation-alerts.json",
+        "--incidents-output",
+        "docs/evidence/investigation-incidents.json"
+    ],
+    "exit_status": 0,
+    "configuration": {
+        "failure_threshold": 3,
+        "window_seconds": 60,
+        "suppression_seconds": 300,
+        "investigate": true
+    },
+    "input": {
+        "path": "examples/investigation_logs.json",
+        "sha256": "8449761f7c471f4db55c82e5832a19e99e506679ea9c59c496eb309ce700fc60",
+        "bytes": 1366
+    },
+    "detector": {
+        "path": "detector.py",
+        "sha256": "27face7f94ddff41c6c403bc54aa4668eb5b8d4766f17889f88e68270c23e72c",
+        "bytes": 18323
+    },
+    "outputs": [
+        {
+            "path": "docs/evidence/investigation-alerts.json",
+            "sha256": "5fbbe235dea1b9c50936d63c9fb9a4086bc9a70086fd44fe506fd86bf67fecbd",
+            "bytes": 911
+        },
+        {
+            "path": "docs/evidence/investigation-incidents.json",
+            "sha256": "1b78840f23a865735544aab7427639f2ed7380a670b377fd4a7476a2d1cd20c6",
+            "bytes": 1586
+        },
+        {
+            "path": "docs/evidence/investigation-console.txt",
+            "sha256": "205e9873326a721a9db5bfdf68eab3374a828cda79d717a993b1f2fb439abcb6",
+            "bytes": 998
+        }
+    ]
+}
